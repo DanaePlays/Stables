@@ -9,8 +9,8 @@ return {
   eventHandlers = {
     [events.FollowerStatus] = function(e)
       local index = nil
-      for i, f in pairs(followingCreatures) do
-        if f.actor == e.actor then
+      for i, follower in ipairs(followingCreatures) do
+        if follower == e.actor then
           index = i
           break
         end

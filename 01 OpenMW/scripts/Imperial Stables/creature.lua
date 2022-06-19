@@ -4,9 +4,14 @@ local I = require('openmw.interfaces')
 
 local events = require('scripts.Imperial Stables.common').events
 
-local followingPlayers = {}
-local stable = nil
 local minDistance = 50
+
+local followingPlayers = {}
+
+local S = {
+    stable = nil,
+    owner = nil,
+}
 
 local function filter(t, callback)
     local result = {}
@@ -43,14 +48,14 @@ local function moveToStable()
     local activeAI = I.AI.getActivePackage()
     if activeAI
         and (activeAI.type == 'Travel')
-        and (activeAI.position == stable.position)
+        and (activeAI.position == S.stable.position)
     then
         return
     end
     I.AI.filterPackages(function() return false end)
     I.AI.startPackage {
         type = 'Travel',
-        destPosition = stable.position,
+        destPosition = S.stable.position,
     }
 end
 
@@ -75,8 +80,8 @@ local function follow(actor)
 end
 
 local function isAtStable()
-    if not stable:isValid() then return true end
-    if (self.position - stable.position):length() < minDistance then return true end
+    if not S.stable:isValid() then return true end
+    if (self.position - S.stable.position):length() < minDistance then return true end
 end
 
 local function updateFollowedPlayers()
@@ -104,16 +109,32 @@ local function updateFollowedPlayers()
     end
 end
 
+local function notifyStable(active)
+    if S.stable then
+        S.stable:sendEvent(events.CreatureStatus, {
+            creature = self.object,
+            active = active,
+        })
+    end
+end
+
+local function clearFollowingPlayers()
+    for k, player in pairs(followingPlayers) do
+        notifyPlayer(player, false)
+        followingPlayers[k] = nil
+    end
+end
+
+local active = true
+
 return {
     engineHandlers = {
         onUpdate = function()
-            if #followingPlayers > 0 and isDead() then
-                for _, player in pairs(followingPlayers) do
-                    notifyPlayer(player, false)
-                end
-                followingPlayers = {}
+            if not active then return end
+            if isDead() then
+                clearFollowingPlayers()
             end
-            if stable then
+            if S.stable then
                 if isAtStable() then
                     stayAtStable()
                 else
@@ -123,20 +144,32 @@ return {
             updateFollowedPlayers()
         end,
         onSave = function()
-            return { stable = stable }
+            return S
         end,
         onLoad = function(saved)
-            stable = saved.stable
+            S = saved
+        end,
+        onActive = function()
+            active = true
+            notifyStable(true)
+        end,
+        onInactive = function()
+            active = false
+            notifyStable(false)
+            clearFollowingPlayers()
         end,
     },
     eventHandlers = {
         [events.Housed] = function(e)
-            stable = e.stable
+            S.stable = e.stable
+            S.owner = e.owner
             moveToStable()
         end,
-        [events.Release] = function(e)
-            stable = nil
-            follow(e.actor)
+        [events.Release] = function()
+            if not S.owner then return end
+            follow(S.owner)
+            S.stable = nil
+            S.owner = nil
         end,
     },
 }
