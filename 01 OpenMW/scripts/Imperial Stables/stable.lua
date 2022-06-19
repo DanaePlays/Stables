@@ -12,7 +12,6 @@ local housed = nil
 return {
   engineHandlers = {
     onActivated = function(obj)
-      print('stable onActivated')
       if housed then
         housed.creature:sendEvent(events.Release, {
           actor = housed.owner,
@@ -37,7 +36,6 @@ return {
   },
   eventHandlers = {
     [events.House] = function(e)
-      print('stable house')
       if not housed then
         housed = {
           creature = e.creature,

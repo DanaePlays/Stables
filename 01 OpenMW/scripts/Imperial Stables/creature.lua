@@ -108,7 +108,6 @@ return {
     engineHandlers = {
         onUpdate = function()
             if #followingPlayers > 0 and isDead() then
-                print('creature dead')
                 for _, player in pairs(followingPlayers) do
                     notifyPlayer(player, false)
                 end
@@ -132,12 +131,10 @@ return {
     },
     eventHandlers = {
         [events.Housed] = function(e)
-            print('creature housed')
             stable = e.stable
             moveToStable()
         end,
         [events.Release] = function(e)
-            print('creature release')
             stable = nil
             follow(e.actor)
         end,
