@@ -12,18 +12,16 @@ local housed = nil
 return {
   engineHandlers = {
     onActivated = function(obj)
-      print('stable onActivated')
-      if housed then
-        housed.creature:sendEvent(events.Release, {
-          actor = housed.owner,
-        })
+      if not obj.type == types.Player then
+        return
+      end
+      if housed and housed.active then
+        housed.creature:sendEvent(events.Release)
         housed = nil
       else
-        if obj.type == types.Player then
-          obj:sendEvent(events.Activated, {
-            stable = self.object,
-          })
-        end
+        obj:sendEvent(events.Activated, {
+          stable = self.object,
+        })
       end
     end,
     onLoad = function(saved)
@@ -32,20 +30,29 @@ return {
       end
     end,
     onSave = function()
-      return { housed = housed }
+      return {
+        housed = housed,
+      }
     end,
   },
   eventHandlers = {
     [events.House] = function(e)
-      print('stable house')
-      if not housed then
+      if not housed or not housed.active then
         housed = {
           creature = e.creature,
-          owner = e.player,
+          active = true
         }
         housed.creature:sendEvent(events.Housed, {
           stable = self.object,
+          owner = e.player,
         })
+      end
+    end,
+    [events.CreatureStatus] = function(e)
+      if housed and e.creature == housed.creature then
+        housed.active = e.active
+      else
+        e.creature:sendEvent(events.Release)
       end
     end,
   }

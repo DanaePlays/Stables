@@ -8,10 +8,9 @@ local distance = 1000
 return {
   eventHandlers = {
     [events.FollowerStatus] = function(e)
-      print('player followerStatus')
       local index = nil
-      for i, f in pairs(followingCreatures) do
-        if f.actor == e.actor then
+      for i, follower in ipairs(followingCreatures) do
+        if follower == e.actor then
           index = i
           break
         end
@@ -24,7 +23,6 @@ return {
       end
     end,
     [events.Activated] = function(e)
-      print('player activated')
       local creature = nil
       for _, c in ipairs(followingCreatures) do
         if (c.position - e.stable.position):length() < distance then
