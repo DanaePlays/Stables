@@ -4,7 +4,13 @@ local I = require('openmw.interfaces')
 
 local events = require('scripts.Imperial Stables.common').events
 
-local minDistance = 50
+-- has to be above 64, pathfinding might give up at up to that distance
+local STABLE_DISTANCE = 70
+local stableDistance2 = STABLE_DISTANCE * STABLE_DISTANCE
+
+-- has to be higher than STABLE_DISTANCE, otherwise the creature will twitch between two states
+local TRAVEL_DISTANCE = 75
+local travelDistance2 = TRAVEL_DISTANCE * TRAVEL_DISTANCE
 
 local followingPlayers = {}
 
@@ -48,7 +54,7 @@ local function moveToStable()
     local activeAI = I.AI.getActivePackage()
     if activeAI
         and (activeAI.type == 'Travel')
-        and (activeAI.position == S.stable.position)
+        and (activeAI.destPosition - S.stable.position):length2() < 1
     then
         return
     end
@@ -79,9 +85,12 @@ local function follow(actor)
     }
 end
 
-local function isAtStable()
-    if not S.stable:isValid() then return true end
-    if (self.position - S.stable.position):length() < minDistance then return true end
+local function distanceToStable2()
+    if not S.stable:isValid() then
+        return 0
+    else
+        return (self.position - S.stable.position):length2()
+    end
 end
 
 local function updateFollowedPlayers()
@@ -135,10 +144,11 @@ return {
                 clearFollowingPlayers()
             end
             if S.stable then
-                if isAtStable() then
-                    stayAtStable()
-                else
+                local d2 = distanceToStable2()
+                if d2 > travelDistance2 then
                     moveToStable()
+                elseif d2 < stableDistance2  then
+                    stayAtStable()
                 end
             end
             updateFollowedPlayers()
